@@ -1,0 +1,123 @@
+function [z, sol]=InternalCost(xhat,model,alpha)
+
+n=model.n;
+
+FR_5charge30_Exp=model.FR_5charge30_Exp;
+FR_5charge40_Exp=model.FR_5charge40_Exp;
+FR_10charge40_Exp=model.FR_10charge40_Exp;
+FR_5discharge30_Exp=model.FR_5discharge30_Exp;
+FR_5discharge40_Exp=model.FR_5discharge40_Exp;
+FR_10discharge40_Exp=model.FR_10discharge40_Exp;
+%     FR_5charge30_F11=model.FR_5charge30_F11;
+%     FR_5charge40_F11=model.FR_5charge40_F11;
+%     FR_10charge40_F11=model.FR_10charge40_F11;
+%     FR_5discharge30_F11=model.FR_5discharge30_F11;
+%     FR_5discharge40_F11=model.FR_5discharge40_F11;
+%     FR_10discharge40_F11=model.FR_10discharge40_F11;
+
+ChargingPro_5charge30=zeros(size(FR_5charge30_Exp));
+ChargingPro_5charge40=zeros(size(FR_5charge40_Exp));
+ChargingPro_10charge40=zeros(size(FR_10charge40_Exp));
+ChargingPro_5discharge30=zeros(size(FR_5discharge30_Exp));
+ChargingPro_5discharge40=zeros(size(FR_5discharge40_Exp));
+ChargingPro_10discharge40=zeros(size(FR_10discharge40_Exp));
+
+TopCost_5charge30=zeros(size(FR_5charge30_Exp));
+TopCost_5charge40=zeros(size(FR_5charge40_Exp));
+TopCost_10charge40=zeros(size(FR_10charge40_Exp));
+TopCost_5discharge30=zeros(size(FR_5discharge30_Exp));
+TopCost_5discharge40=zeros(size(FR_5discharge40_Exp));
+TopCost_10discharge40=zeros(size(FR_10discharge40_Exp));
+
+Predictionbuffer_5charge30=zeros(size(FR_5charge30_Exp));
+Predictionbuffer_5charge40=zeros(size(FR_5charge40_Exp));
+Predictionbuffer_10charge40=zeros(size(FR_10charge40_Exp));
+Predictionbuffer_5discharge30=zeros(size(FR_5discharge30_Exp));
+Predictionbuffer_5discharge40=zeros(size(FR_5discharge40_Exp));
+Predictionbuffer_10discharge40=zeros(size(FR_10discharge40_Exp));
+
+Errmax = model.Errmax;
+DecisionVarViolAlpha = model.DecisionVarViolAlpha;
+T30=model.T30;T40=model.T40;
+TopCostmax=model.TopCostmax;TopCostmin=model.TopCostmin;
+
+CycLen=model.CycLen;DayLen=24;
+topday=DayLen*[repmat(0,1,10),repmat(1,1,10),repmat(2,1,10),repmat(3,1,10),repmat(4,1,10),repmat(5,1,10),repmat(6,1,10),repmat(7,1,10),repmat(8,1,10),repmat(9,1,10),repmat(10,1,10),repmat(11,1,10),repmat(12,1,10),repmat(13,1,10),repmat(14,1,10),repmat(15,1,10),repmat(16,1,10),repmat(17,1,10),repmat(18,1,10),repmat(19,1,10),repmat(20,1,10),repmat(21,1,10),repmat(22,1,10),repmat(23,1,10),repmat(24,1,10)];
+topinc=CycLen*linspace(1,250,250) ;
+Top=topinc;% Top=topday+topinc;
+
+x=ParseSolution(xhat);  %x(9)=0 % without top this line eliminates TopCost 
+ 
+for N_cyc=1:numel(Predictionbuffer_5charge30)
+    Ich=5;Idis=1;T=T30;
+    ChargingPro_5charge30(N_cyc)= x(1)*(Ich^x(2))*(Idis^x(3))*exp(x(4)/T)*( N_cyc^(x(5)*(Ich^x(6))*(Idis^x(7))*exp(x(8)/T)) );
+    TopCost_5charge30(N_cyc)=x(9)*exp(x(10)/T)*Top(N_cyc)^x(11);
+    Predictionbuffer_5charge30(N_cyc) = ChargingPro_5charge30(N_cyc) + TopCost_5charge30(N_cyc);
+    
+    Ich=5;Idis=1;T=T40;
+    ChargingPro_5charge40(N_cyc)=x(1)*(Ich^x(2))*(Idis^x(3))*exp(x(4)/T)*( N_cyc^(x(5)*(Ich^x(6))*(Idis^x(7))*exp(x(8)/T)) );
+    TopCost_5charge40(N_cyc)=x(9)*exp(x(10)/T)*Top(N_cyc)^x(11);
+    Predictionbuffer_5charge40(N_cyc)=ChargingPro_5charge40(N_cyc) + TopCost_5charge40(N_cyc);
+    
+    Ich=10;Idis=1;T=T40;
+    ChargingPro_10charge40(N_cyc)=x(1)*(Ich^x(2))*(Idis^x(3))*exp(x(4)/T)*( N_cyc^(x(5)*(Ich^x(6))*(Idis^x(7))*exp(x(8)/T)) );
+    TopCost_10charge40(N_cyc)=x(9)*exp(x(10)/T)*Top(N_cyc)^x(11);
+    Predictionbuffer_10charge40(N_cyc)=ChargingPro_10charge40(N_cyc) + TopCost_10charge40(N_cyc);
+    
+    Ich=1;Idis=5;T=T30;
+    ChargingPro_5discharge30(N_cyc)=x(1)*(Ich^x(2))*(Idis^x(3))*exp(x(4)/T)*( N_cyc^(x(5)*(Ich^x(6))*(Idis^x(7))*exp(x(8)/T)) );
+    TopCost_5discharge30(N_cyc)=x(9)*exp(x(10)/T)*Top(N_cyc)^x(11);
+    Predictionbuffer_5discharge30(N_cyc)=ChargingPro_5discharge30(N_cyc) + TopCost_5discharge30(N_cyc);
+    
+    Ich=1;Idis=5;T=T40;
+    ChargingPro_5discharge40(N_cyc)=x(1)*(Ich^x(2))*(Idis^x(3))*exp(x(4)/T)*( N_cyc^(x(5)*(Ich^x(6))*(Idis^x(7))*exp(x(8)/T)) );
+    TopCost_5discharge40(N_cyc)=x(9)*exp(x(10)/T)*Top(N_cyc)^x(11);
+    Predictionbuffer_5discharge40(N_cyc)=ChargingPro_5discharge40(N_cyc) + TopCost_5discharge40(N_cyc);
+    
+    Ich=1;Idis=10;T=T40;
+    ChargingPro_10discharge40(N_cyc)=x(1)*(Ich^x(2))*(Idis^x(3))*exp(x(4)/T)*( N_cyc^(x(5)*(Ich^x(6))*(Idis^x(7))*exp(x(8)/T)) );
+    TopCost_10discharge40(N_cyc)=x(9)*exp(x(10)/T)*Top(N_cyc)^x(11);
+    Predictionbuffer_10discharge40(N_cyc)=ChargingPro_10discharge40(N_cyc) + TopCost_10discharge40(N_cyc);
+    
+end
+
+absErr5charge30 = abs(FR_5charge30_Exp-Predictionbuffer_5charge30)';
+absErr5charge40 = abs(FR_5charge40_Exp-Predictionbuffer_5charge40)';
+absErr10charge40 = abs(FR_10charge40_Exp-Predictionbuffer_10charge40)';
+absErr5discharge30 = abs(FR_5discharge30_Exp-Predictionbuffer_5discharge30)';
+absErr5discharge40 = abs(FR_5discharge40_Exp-Predictionbuffer_5discharge40)';
+absErr10discharge40 = abs(FR_10discharge40_Exp-Predictionbuffer_10discharge40)';
+
+absErr=[absErr5charge30;absErr5charge40;absErr10charge40;absErr5discharge30;absErr5discharge40;absErr10discharge40];
+z = sum(absErr);
+
+SubV1=max(0,(TopCost_5charge30(numel(TopCost_5charge30))/TopCostmax) -1);
+SubV2=max(0,1-(TopCost_5charge30(numel(TopCost_5charge30))/TopCostmin));
+SubV3=max(0,(TopCost_5charge40(numel(TopCost_5charge40))/TopCostmax) -1);
+SubV4=max(0,1-(TopCost_5charge40(numel(TopCost_5charge40))/TopCostmin));
+
+Viol1=DecisionVarViolAlpha*(SubV1+SubV2+SubV3+SubV4); 
+% Viol1=0;    % eliminate viol1 to run faster
+NumViol1=double(SubV1>0)+double(SubV2>0)+double(SubV3>0)+double(SubV4>0);
+
+Viol2=sum(max(0,absErr/Errmax-1));
+NumViol2=sum(double(max(0,absErr/Errmax-1)>0));
+
+SumViol = Viol1 + Viol2;
+NumViol = NumViol1 + NumViol2;
+
+%z=VB+(alpha(1)*SumViol+alpha(2)*NumViol)*1000;
+%z = VB+1000*alpha*SumViol;
+%z=(1000+VB)*(1+alpha*SumViol)-1000;
+
+sol.x=x;
+sol.SubV1=SubV1;sol.SubV2=SubV2;sol.SubV3=SubV3;sol.SubV4=SubV4;
+sol.Viol1=Viol1;
+sol.Viol2=Viol2;
+sol.NumViol1=NumViol1;
+sol.NumViol2=NumViol2;
+sol.SumViol=SumViol;
+sol.NumViol=NumViol;
+sol.IsFeasible=(NumViol==0);
+sol.z=z;
+end
